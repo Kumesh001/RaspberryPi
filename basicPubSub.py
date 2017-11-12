@@ -4,6 +4,9 @@ import time
 import logging
 import argparse
 import json
+import serial
+
+ser= serial.Serial('/dev/ttyACM0',9600)
 
 GPIO.setmode(GPIO.BCM)
 
