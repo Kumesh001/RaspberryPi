@@ -6,7 +6,7 @@ import argparse
 import json
 import serial
 
-ser= serial.Serial('/dev/ttyACM0',9600)
+#ser= serial.Serial('/dev/ttyACM0',9600)
 
 GPIO.setmode(GPIO.BCM)
 
@@ -140,10 +140,9 @@ while True:
         "Distance":distance,
         "state":state,
         "message":msg
-        }
-       
+        }       
     myAWSIoTMQTTClient.publish(topic,json.dumps(message),1)
     loopCount += 1
-    time.sleep(1)
+    time.sleep(3)
     
 GPIO.cleanup()
