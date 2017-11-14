@@ -1,4 +1,13 @@
+'''
+import os
+import sys
+import AWSIoTPythonSDK
+sys.path.insert(0,os.path.dirname(AWSIoTPythonSDK.__file__))
+
+'''
+
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
+#import AWSIoTMQTTClient from AWSIoTPythonSDK.MQTTLib
 import RPi.GPIO as GPIO
 import time
 import logging
@@ -32,7 +41,7 @@ def customCallback(client, userdata, message):
     print(message.topic)
     print("--------------\n\n")
 
-
+print("I m here")
 # Read in command-line parameters
 parser = argparse.ArgumentParser()
 parser.add_argument("-e", "--endpoint", action="store", required=True, dest="host", help="Your AWS IoT custom endpoint")
@@ -44,6 +53,8 @@ parser.add_argument("-w", "--websocket", action="store_true", dest="useWebsocket
 parser.add_argument("-id", "--clientId", action="store", dest="clientId", default="basicPubSub",
                     help="Targeted client id")
 parser.add_argument("-t", "--topic", action="store", dest="topic", default="sdk/test/Python", help="Targeted topic")
+
+print("Now parsing the argument")
 
 args = parser.parse_args()
 host = args.host
@@ -71,6 +82,8 @@ streamHandler.setFormatter(formatter)
 logger.addHandler(streamHandler)
 
 # Init AWSIoTMQTTClient
+print("Now Initialsing the Mqtt client")
+
 myAWSIoTMQTTClient = None
 if useWebsocket:
     myAWSIoTMQTTClient = AWSIoTMQTTClient(clientId, useWebsocket=True)
@@ -89,12 +102,17 @@ myAWSIoTMQTTClient.configureConnectDisconnectTimeout(10)  # 10 sec
 myAWSIoTMQTTClient.configureMQTTOperationTimeout(5)  # 5 sec
 
 # Connect and subscribe to AWS IoT
+print("Connecting the deivce now")
+
 myAWSIoTMQTTClient.connect()
 myAWSIoTMQTTClient.subscribe(topic, 1, customCallback)
 time.sleep(2)
 
 # Publish to the same topic in a loop forever
+print("Welcome to the while loop")
+
 loopCount = 0
+previousState=0
 while True:
     GPIO.output(TRIG,True)
     time.sleep(0.0001)
@@ -140,9 +158,14 @@ while True:
         "Distance":distance,
         "state":state,
         "message":msg
-        }       
-    myAWSIoTMQTTClient.publish(topic,json.dumps(message),1)
+        }
+    if previousState!=state:
+        print("Before publishing the data")
+        myAWSIoTMQTTClient.publish(topic,json.dumps(message),1)
+        previousState=state;
+        
     loopCount += 1
-    time.sleep(3)
+    print("Now going to sleep")
+    time.sleep(1)
     
 GPIO.cleanup()
