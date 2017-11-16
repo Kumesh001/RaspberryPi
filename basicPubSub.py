@@ -11,19 +11,17 @@ ser= serial.Serial('/dev/ttyACM0',9600)
 
 GPIO.setmode(GPIO.BCM)
 
-TRIG=15
-ECHO=14
+Relay1=2
+Relay2=3
+
 state=0
 
 print("Distance measured In Process")
 GPIO.setwarnings(False)
-GPIO.setup(18,GPIO.OUT)
-GPIO.setup(TRIG,GPIO.OUT)
-GPIO.setup(ECHO,GPIO.IN)
+GPIO.setup(Relay1,GPIO.OUT)
+GPIO.setup(Relay2,GPIO.OUT)
 
-
-GPIO.output(TRIG,False)
-print("Waiting for the sensor to sense the data")
+GPIO.output(Relay1,False)
 
 # Custom MQTT message callback
 def customCallback(client, userdata, message):
@@ -103,31 +101,59 @@ time.sleep(2)
 # Publish to the same topic in a loop forever
 print("Welcome to the while loop")
 
+def bubbleSort(alist):
+    for passnum in range(len(alist)-1,0,-1):
+        for i in range(passnum):
+            if alist[i]>alist[i+1]:
+                temp=alist[i]
+                alist[i]=alist[i+1]
+                alist[i+1]=temp
+
 loopCount = 0
 previousState=0
-
+countState=0
+currentState=""
 while True:
-    read_serial=ser.readline()
-    dataArray=read_serial.split(',')
+    state=requests.get('https://ub4qge1nh1.execute-api.us-west-2.amazonaws.com/prod/TriggerFunction')
+    response=josn.loads(state.content)
+    count=response['Count']
     
-    current = float(dataArray[0])
-    voltage = float(dataArray[1])
-    power   = float(dataArray[2])
-    energy  = float(dataArray[3])
-    time    = dataArray[4]
-   
-    message={
-        "Current1":current,
-        "Power1":power,
-        "Energy":energy,
-        "Voltage":voltage,
-         "Time":time
-    }
-   
-    print("Before publishing the data")
-    myAWSIoTMQTTClient.publish(topic,json.dumps(message),1)
-    previousState=state;
+    if countState!=count:
+        dates=[]
+        countState=count
+        for line in response['Items']:
+            dates.append(line['Date'])
+            
+        bubbleSort(dates)
         
+        for line in response['Items']:
+            if line['Date']==dates[-1]:
+                currentState=line['Result']
+            
+    if currentState=="ON":
+        GPIO.output(Relay1,False);
+        time.sleep(0.03)
+        read_serial=ser.readline()
+        dataArray=read_serial.split(',')
+    
+        current = float(dataArray[0])
+        voltage = float(dataArray[1])
+        power   = float(dataArray[2])
+        energy  = float(dataArray[3])
+        time    = dataArray[4]
+   
+        message={
+            "Current":current,
+            "Power":power,
+            "Energy":energy,
+            "Voltage":voltage,
+            "Time":time
+        }
+        myAWSIoTMQTTClient.publish(topic,json.dumps(message),1)
+    else:
+        GPIO.output(Relay1,True);
+        print("Socket is switched off")
+    
     loopCount += 1
     print("Now going to sleep")
     time.sleep(1.5)
