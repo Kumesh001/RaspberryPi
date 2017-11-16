@@ -1,3 +1,11 @@
+'''
+import os
+import sys
+import AWSIoTPythonSDK
+sys.path.insert(0,os.path.dirname(AWSIoTPythonSDK.__file__))
+
+'''
+
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
 #import AWSIoTMQTTClient from AWSIoTPythonSDK.MQTTLib
 import RPi.GPIO as GPIO
@@ -7,7 +15,7 @@ import argparse
 import json
 import serial
 
-ser= serial.Serial('/dev/ttyACM0',9600)
+#ser= serial.Serial('/dev/ttyACM0',9600)
 
 GPIO.setmode(GPIO.BCM)
 
@@ -105,26 +113,56 @@ print("Welcome to the while loop")
 
 loopCount = 0
 previousState=0
-
 while True:
-    read_serial=ser.readline()
-    dataArray=read_serial.split(',')
+    GPIO.output(TRIG,True)
+    time.sleep(0.0001)
     
-    current1 = float(dataArray[0])
-    power   1= float(dataArray[1])
-    current2 = float(dataArray[2])
-    power2   = float(dataArray[3])
-   
+    GPIO.output(TRIG,False)
+    
+    while GPIO.input(ECHO)==0:
+        pulse_start=time.time()
+        
+    while GPIO.input(ECHO)==1:
+         pulse_end=time.time()
+         
+    pulse_duration=pulse_end-pulse_start
+    distance=pulse_duration*17150
+    distance=round(distance,2)
+    
+    #print("Distance is:",distance,"cm")
+
+    if distance > 15:
+        print("Turn the led on")
+        state=1
+        GPIO.output(18,GPIO.HIGH)
+        time.sleep(2)
+    else:
+        state=0
+        print("Turn the led Off")
+        GPIO.output(18,GPIO.LOW)
+        time.sleep(2)
+    
+    if distance > 150:
+        state=2
+        print("Reach out of bound")
+        
+    if state==0:
+        msg="Led is Off"
+    if state==1:
+        msg="Led is ON"
+    if state==2:
+        msg="Out of reach"
+  
+    
     message={
-        "Current1":current1,
-        "Power1":power1,
-        "Current2":current2,
-        "Power2":power2
+        "Distance":distance,
+        "state":state,
+        "message":msg
         }
-   
-    print("Before publishing the data")
-    myAWSIoTMQTTClient.publish(topic,json.dumps(message),1)
-    previousState=state;
+    if previousState!=state:
+        print("Before publishing the data")
+        myAWSIoTMQTTClient.publish(topic,json.dumps(message),1)
+        previousState=state;
         
     loopCount += 1
     print("Now going to sleep")
