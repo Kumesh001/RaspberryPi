@@ -110,17 +110,19 @@ while True:
     read_serial=ser.readline()
     dataArray=read_serial.split(',')
     
-    current1 = float(dataArray[0])
-    power   1= float(dataArray[1])
-    current2 = float(dataArray[2])
-    power2   = float(dataArray[3])
+    current = float(dataArray[0])
+    voltage = float(dataArray[1])
+    power   = float(dataArray[2])
+    energy  = float(dataArray[3])
+    time    = dataArray[4]
    
     message={
-        "Current1":current1,
-        "Power1":power1,
-        "Current2":current2,
-        "Power2":power2
-        }
+        "Current1":current,
+        "Power1":power,
+        "Energy":energy,
+        "Voltage":voltage,
+         "Time":time
+    }
    
     print("Before publishing the data")
     myAWSIoTMQTTClient.publish(topic,json.dumps(message),1)
@@ -128,6 +130,6 @@ while True:
         
     loopCount += 1
     print("Now going to sleep")
-    time.sleep(1)
+    time.sleep(1.5)
     
 GPIO.cleanup()
