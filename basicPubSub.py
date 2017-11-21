@@ -116,10 +116,12 @@ def bubbleSort(alist):
                 alist[i+1]=temp
 timer=0
 loopCount = 0
-previousState=0
+firstState=0
 countState=0
 currentState=""
+lastState=""
 while True:
+    print("Inside the while loop Welcome again")
     state=requests.get('https://ub4qge1nh1.execute-api.us-west-2.amazonaws.com/prod/TriggerFunction')
     response=json.loads(state.content)
     count=response['Count']
@@ -135,16 +137,25 @@ while True:
         for line in response['Items']:
             if line['Date']==dates[-1]:
                 currentState=line['Result']
+                firstState=currentState
+                
     print("currentState is")
     print(currentState)
-    
+    read_serial=ser.readline()
+    dataArray=read_serial.split(',')
+    print(dataArray)
+    lastState=currentState
+    print("Last state is:")
+    print(lastState)
+    if firstState=='ON':
+        ser.write('F')
+        firstState=''
+        currentState='OFF'
+        
     if currentState=="ON":
         print("Socket is ON")
         ser.write('O')
         time.sleep(0.0002)
-        read_serial=ser.readline()
-        dataArray=read_serial.split(',')
-        print(dataArray)
         
         current = dataArray[0]
         voltage  =dataArray[1]
@@ -179,6 +190,6 @@ while True:
     
     loopCount += 1
     print("Now going to sleep")
-    time.sleep(0.003)
-    timer +=3
+    #time.sleep(0.003)
+    #timer +=3
 GPIO.cleanup()
