@@ -1,27 +1,33 @@
+'''import os
+import sys
+import AWSIoTPythonSDK
+sys.path.insert(0,os.path.dirname(AWSIoTPythonSDK.__file__))
+'''
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
-#import AWSIoTMQTTClient from AWSIoTPythonSDK.MQTTLib
 import RPi.GPIO as GPIO
 import time
 import logging
 import argparse
 import json
 import serial
+import requests
 
 ser= serial.Serial('/dev/ttyACM0',9600)
-
+ser.flushInput()
+ser.write('F')
+'''
 GPIO.setmode(GPIO.BCM)
 
-Relay1=2
-Relay2=3
+Relay1=17
+led=2
 
 state=0
-
-print("Distance measured In Process")
 GPIO.setwarnings(False)
 GPIO.setup(Relay1,GPIO.OUT)
-GPIO.setup(Relay2,GPIO.OUT)
-
-GPIO.output(Relay1,False)
+GPIO.setup(led,GPIO.OUT)
+GPIO.output(led,GPIO.LOW)
+    
+GPIO.output(Relay1,GPIO.LOW)'''
 
 # Custom MQTT message callback
 def customCallback(client, userdata, message):
@@ -108,14 +114,14 @@ def bubbleSort(alist):
                 temp=alist[i]
                 alist[i]=alist[i+1]
                 alist[i+1]=temp
-
+timer=0
 loopCount = 0
 previousState=0
 countState=0
 currentState=""
 while True:
     state=requests.get('https://ub4qge1nh1.execute-api.us-west-2.amazonaws.com/prod/TriggerFunction')
-    response=josn.loads(state.content)
+    response=json.loads(state.content)
     count=response['Count']
     
     if countState!=count:
@@ -129,33 +135,50 @@ while True:
         for line in response['Items']:
             if line['Date']==dates[-1]:
                 currentState=line['Result']
-            
+    print("currentState is")
+    print(currentState)
+    
     if currentState=="ON":
-        GPIO.output(Relay1,False);
-        time.sleep(0.03)
+        print("Socket is ON")
+        ser.write('O')
+        time.sleep(0.0002)
         read_serial=ser.readline()
         dataArray=read_serial.split(',')
-    
-        current = float(dataArray[0])
-        voltage = float(dataArray[1])
-        power   = float(dataArray[2])
-        energy  = float(dataArray[3])
-        time    = dataArray[4]
+        print(dataArray)
+        
+        current = dataArray[0]
+        voltage  =dataArray[1]
+        power   = dataArray[2]
+        energy  = dataArray[3]
+        timeValue    = dataArray[4]
    
         message={
             "Current":current,
             "Power":power,
             "Energy":energy,
             "Voltage":voltage,
-            "Time":time
+            "Time":timeValue
         }
+        print("Publishing the message")
         myAWSIoTMQTTClient.publish(topic,json.dumps(message),1)
     else:
-        GPIO.output(Relay1,True);
+        ser.write('F')
+        time.sleep(0.0002)
+        timeValue2    = dataArray[4]
+
+        message={
+            "Current":0,
+            "Power":0,
+            "Energy":0,
+            "Voltage":230,
+            "Time":timeValue2
+        }
+        print("Publishing the message")
+        myAWSIoTMQTTClient.publish(topic,json.dumps(message),1)
         print("Socket is switched off")
     
     loopCount += 1
     print("Now going to sleep")
-    time.sleep(1.5)
-    
+    time.sleep(0.003)
+    timer +=3
 GPIO.cleanup()
