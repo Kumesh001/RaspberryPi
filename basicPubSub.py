@@ -137,7 +137,7 @@ while True:
         for line in response['Items']:
             if line['Date']==dates[-1]:
                 currentState=line['Result']
-                firstState=currentState
+                #firstState=currentState
                 
     print("currentState is")
     print(currentState)
@@ -145,12 +145,9 @@ while True:
     dataArray=read_serial.split(',')
     print(dataArray)
     lastState=currentState
-    print("Last state is:")
-    print(lastState)
-    if firstState=='ON':
-        ser.write('F')
-        firstState=''
-        currentState='OFF'
+    #print("Last state is:")
+    #print(lastState)
+    
         
     if currentState=="ON":
         print("Socket is ON")
